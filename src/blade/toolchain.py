@@ -509,6 +509,22 @@ def generate_python_binary_entry(args):
     generate_python_binary(args[0], args[1], args[2], args[3:])
 
 
+def generate_go_test_entry(args):
+    go_path, package, script = args
+    with open(script, 'w') as f:
+        f.write("""#!/bin/sh
+# Auto generated wrapper shell script by blade
+
+if [ -n "$BLADE_COVERAGE" ]
+then
+    "%s/go" test -coverprofile=coverage.data -coverpkg="%s" "%s"
+else
+    "%s/go" test "%s"
+fi
+""" % (go_path, package, package, go_path, package))
+    os.chmod(script, 0o755)
+
+
 toolchains = {
     'scm': generate_scm_entry,
     'package': generate_package_entry,
@@ -525,6 +541,7 @@ toolchains = {
     'shell_testdata': generate_shell_testdata_entry,
     'python_library': generate_python_library_entry,
     'python_binary': generate_python_binary_entry,
+    'go_test': generate_go_test_entry,
 }
 
 if __name__ == '__main__':

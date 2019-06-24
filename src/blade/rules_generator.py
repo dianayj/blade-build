@@ -742,10 +742,11 @@ pool %s
                                command='%s build -o ${out} ${package}' % prefix,
                                description='GOLANG COMMAND ${package}',
                                pool=go_pool)
+            args = '%s ${package} ${out}' % go_path
             self.generate_rule(name='gotest',
-                               command='%s test -c -o ${out} ${package}' % prefix,
-                               description='GOLANG TEST ${package}',
-                               pool=go_pool)
+                               command=self.generate_toolchain_command('go_test',
+                                                                        suffix=args),
+                               description='GOLANG TEST ${package}')
 
     def generate_shell_rules(self):
         self.generate_rule(name='shelltest',

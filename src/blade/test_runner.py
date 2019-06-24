@@ -307,8 +307,54 @@ class TestRunner(binary_runner.BinaryRunner):
             if subprocess.call(cmd_str, shell=True):
                 console.warning('Failed to generate java coverage report')
 
+
+    def _get_go_coverage_data(self):
+        """
+        Return a list of tuples for each go_test.
+
+        """
+        coverage_data = []
+        for key in self.test_jobs:
+            target = self.targets[key]
+            if target.type != 'go_test':
+                continue
+            runfile_dir = self._runfiles_dir(target)
+            cover_out = os.path.join(runfile_dir, 'coverage.data')
+            if not os.path.isfile(cover_out):
+                continue
+            coverage_data.append(cover_out)
+
+        return coverage_data
+
+
+    def _generate_go_coverage_report(self):
+        coverage_data = self._get_go_coverage_data()
+        if coverage_data:
+            go_home = config.get_item('go_config', 'go_home')
+            coverage_dir = os.path.join(self.build_dir, go_home)
+            # merge coverage data files
+            merged_coverage = os.path.join(coverage_dir, 'coverage.data')
+            coverage_data_str = ' '.join(coverage_data)
+            merge_cmd = 'echo "mode: set" > %s; grep -h -v "^mode" %s | sort >> %s' % (
+                merged_coverage, coverage_data_str, merged_coverage
+            )
+            console.debug(merge_cmd)
+            if subprocess.call(merge_cmd, shell=True):
+                console.warning('Failed to merge coverage file')
+                return
+            # generate coverage report
+            go = config.get_item('go_config', 'go')
+            coverage_html = os.path.join(coverage_dir, 'coverage.html')
+            cmd_str = '%s tool cover -html=%s -o %s' % (go, merged_coverage, coverage_html)
+            console.info('Generating go coverage report: %s' % coverage_html)
+            console.debug(cmd_str)
+            if subprocess.call(cmd_str, shell=True):
+                console.warning('Failed to generate go coverage report')
+
+
     def _generate_coverage_report(self):
         self._generate_java_coverage_report()
+        self._generate_go_coverage_report()
 
     def _show_banner(self, text):
         pads = (76 - len(text)) / 2
